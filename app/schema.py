@@ -1,10 +1,14 @@
-from pydantic import BaseModel, Field, field_validator, EmailStr
-from typing import Annotated
+from pydantic import BaseModel, Field, field_validator, EmailStr, ConfigDict
+from typing import Annotated, List
 import re
+from datetime import datetime
 
 class Register(BaseModel):
+    """
+    input schema for creating a new user.
+    """
     email: EmailStr
-    password: Annotated[str, Field(min_length=8, max_length=15, description="must include at least 1 letter(either uppercase or lower), 1 integer, and 1 special charater")]
+    password: Annotated[str, Field(min_length=3, max_length=10, description="must include at least 1 letter(either uppercase or lower), 1 integer")]
     #field_validator to enforce description
     @field_validator("password")
     def validate_password(cls, v:str) ->str:
@@ -13,8 +17,6 @@ class Register(BaseModel):
             raise ValueError("password must contain at least one letter")
         if not re.search(r"\d", v):
             raise ValueError("Password must contain at least one digit")
-        if not re.search(r"[^A-Za-z0-9]", v):
-            raise ValueError("Password must contain at least one special character")
         return v
     @field_validator("email")
     def normalize_email(cls, v: str) -> str:
@@ -22,9 +24,15 @@ class Register(BaseModel):
 
 
 class MessageOut(BaseModel):
+    """
+    output schema for sucess message.
+    """
     message: str
 
 class LoginUser(BaseModel):
+    """
+    input schema to login a user.
+    """
     email: EmailStr
     password: str
     @field_validator("email")
@@ -32,27 +40,21 @@ class LoginUser(BaseModel):
         return v.strip().lower()
 
 class LogRes(BaseModel):
+    """
+    Output schema after a succesful login
+    """
     token: str
     token_type: str
 
 
 class HabitCreate(BaseModel):
-    """ 
-    Pydantic model for add habit input validation.
-    This model ensures that the habit title, description, and frequency are provided and meet the required
-    criteria, frequency must be complete before 2am the said otherwise the habit will be considered broken and the user streak count will be reset to 0.
-    Input: 
-        email: specific user email, must be a valid email string 
-        session: database session, default to system get_db
-        raises: value error if title, description, or frequency do not meet the specified criteria
+    """
+    Input schema for creating a new habit record.
     """
     title: Annotated[str, Field(min_length=3, max_length=55, description="Habit title (3 to 55 characters)")]
     description: Annotated[str, Field(min_length=3, max_length=200, description="Habit details (3 to 200 characters")]
     frequency: Annotated[str, Field(description="Input either daily or weekly")]
     #field_validator 
-    @field_validator("email")
-    def normalize_email(cls, v: str) -> str:
-        return v.strip().lower()
     @field_validator("title")
     def normalize_title(cls, v: str) -> str:
         # Strip leading/trailing spaces and collapse multiple inner spaces into one
@@ -93,11 +95,8 @@ class HabitCreate(BaseModel):
 
 
 class HabitOut(BaseModel):
-    """"
-    Pydantic model for add habit output validation.
-    Input: 
-        email: specific user email, must be a valid email string 
-    
+    """
+    output schema after a successfully habit creation.
     """
     message: str
 
@@ -106,6 +105,8 @@ class GetHabitOut(BaseModel):
     """
     Pydantic model for getting all habit output validation.
     """
+    model_config = ConfigDict(from_attributes=True)
+
     habit_id: str
     habit_title: str
     habit_description: str
@@ -118,8 +119,15 @@ class GetHabitOut(BaseModel):
     frequency_goal_count: int
     no_of_failed_streak: int
     percentage_performance: float
-    created_at: str
-    start_at: str
-    updated_at: str
-    next_frequency_date: str
+    created_at: datetime
+    start_at: datetime
+    updated_at: datetime
+    next_frequency_date: datetime
     user_id: str
+
+class HabitOutRes(BaseModel):
+    habits: List[GetHabitOut]
+    total: int
+    count: int
+    skip: int
+    limit: int
