@@ -19,6 +19,7 @@ def configure_cors(app: FastAPI) -> None:
         allow_headers=["*"],
     )
 
+#configuring Avien postgres url from emvironmental variables
 DATABASE_URL = config('DATABASE_URL')
 
 #normalizing the aiven postgres url
@@ -43,7 +44,7 @@ ASYNC_DATABASE_URL = normalize_url(DATABASE_URL)
 # SQLModel engine
 engine = create_async_engine(
     ASYNC_DATABASE_URL,
-    echo=False,  # Optional: set to False in production
+    echo=False,
     future=True
 )
 #async session maker
@@ -72,6 +73,7 @@ async def init_db() -> None:
         await conn.run_sync(SQLModel.metadata.create_all)
         #print("Tables created (if not exist)")
 
+#automatic default function to clean and break umcompleted habit everyday by 2am
 async def break_habit():
     try:
         while True:
@@ -79,14 +81,16 @@ async def break_habit():
                 #handle broken habits 
                 now = datetime.now(timezone.utc)
                 statement = select(Habit).where(and_(Habit.next_frequency_date < now, Habit.delete_status == False, Habit.frequency_goal_count == 0))
-                result = await db.exec(statement)
-                broken_habit = result.all()
+                result = await db.execute(statement)
+                broken_habit = result.scalars().all()
                 
                 for entry in broken_habit:
                     entry.user_streak_count = 0
                     entry.break_task_status = True
                     entry.system_streak_count += 1
                     entry.no_of_failed_streak += 1
+                    entry.complete_current_habit = False
+                    entry.frequency_goal_count = 0
                     # Habit cycle starts today at 01;00
                     entry.start_at = now.replace(hour=1, minute=0, second=0, microsecond=0)
                     # Calculate percentage performance

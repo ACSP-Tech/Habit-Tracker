@@ -11,19 +11,24 @@ from sqlalchemy import and_
 from fastapi import Depends, HTTPException, status
 from .setup_main import get_db
 
+# Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+#function to hash password
 async def password_hash(password):
     """permently Hash plain password"""
     return pwd_context.hash(password)
 
+#function to verify password
 async def password_verify(plain_password, hashpassword):
     """verify user password"""
     return pwd_context.verify(plain_password, hashpassword)
 
+#configuring jwt token secret key and algorithm
 SECRET_KEY = config('SECRET_KEY')
 ALGORITHM = config('ALGORITHM')
 
+#function to decode jwt token and handle exceptions
 async def decode_token(token):
     try:
         return jwt.decode(token, SECRET_KEY, ALGORITHM)
@@ -37,7 +42,8 @@ async def decode_token(token):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token. Please log in again.",
         )
-    
+
+#function to encode jwt token with payload and expiration time    
 async def encode_token(payload, expires_delta: int = 86400):
     """
     Encode a JWT token with the given payload and expiration time.
@@ -62,7 +68,7 @@ async def encode_token(payload, expires_delta: int = 86400):
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-
+#function to check if user exists in the database based on token
 async def is_user(token, session) -> bool:
     try:
         payload = await decode_token(token)
@@ -80,6 +86,7 @@ async def is_user(token, session) -> bool:
 # Define OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="user/login")
 
+# dependencies for all routes aside from resgister and login to check if token and user is accurate
 async def user_auth(token=Depends(oauth2_scheme), session=Depends(get_db)):
    """
    user authentication dependency.
@@ -93,6 +100,7 @@ async def user_auth(token=Depends(oauth2_scheme), session=Depends(get_db)):
            detail=str(e)
        )
 
+# 5 predefined Habits
 DEFAULT_HABITS = [
     {
         "title": "Morning Hydration",
@@ -121,6 +129,7 @@ DEFAULT_HABITS = [
     },
 ]
 
+#function to compute the start and end date given an input frequency
 def compute_initial_deadlines(frequency: str):
     """Calculates start_at and the first check-in deadline."""
     now = datetime.now(timezone.utc)
@@ -133,5 +142,6 @@ def compute_initial_deadlines(frequency: str):
         
     return start_date, next_date
 
+#defining a default size for all paginated list, page and size can be use as query parameters to control pagination further on routes with pagination
 class MyParams(Params):
     size: int = 5

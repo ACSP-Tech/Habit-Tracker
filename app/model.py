@@ -5,6 +5,7 @@ import uuid
 from pydantic import EmailStr
 from datetime import datetime
 
+#defining the user table to store user data with a relationship to the Habit table
 class Users(SQLModel, table=True):
     id: str = Field(
     default_factory=lambda: str(uuid.uuid4()),
@@ -19,6 +20,7 @@ class Users(SQLModel, table=True):
     #defining relationships
     Habits: List["Habit"] = Relationship(back_populates="users")
 
+#definig the Habit table and the necessary columns
 class Habit(SQLModel, table=True):
     habit_id: str = Field(
     default_factory=lambda: str(uuid.uuid4()),
@@ -31,7 +33,7 @@ class Habit(SQLModel, table=True):
     habit_frequency: str = Field(
         sa_column=Column(String, nullable=False))
     delete_status: bool = Field(default=False, sa_column=Column(Boolean, nullable=False, server_default=text("false"), index=True))
-    is_active: bool = Field(default=True, sa_column=Column(Boolean, nullable=False, server_default=text("true"), index=True))
+    complete_current_habit: bool = Field(default=False, sa_column=Column(Boolean, nullable=False, server_default=text("true"), index=True))
     break_task_status: bool = Field(default=False, sa_column=Column(Boolean, nullable=False, server_default=text("false"), index=True))
     system_streak_count: int = Field(default= 0, sa_column=Column(Integer, nullable=False, index=True))
     user_streak_count: int = Field(default= 0, sa_column=Column(Integer, nullable=False, index=True))
