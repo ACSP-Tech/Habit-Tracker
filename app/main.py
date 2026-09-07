@@ -24,8 +24,7 @@ async def lifespan(app: FastAPI):
         try:
             # Await the task to ensure it finishes its current cycle and cleans up properly
             await habit_cleanup_task
-        except asyncio.CancelledError:
-            # Silence the cancellation error since shutting down the task was intentional
+        except (asyncio.CancelledError, Exception) as exc:
             pass
 
 # Instantiate the core FastAPI application
