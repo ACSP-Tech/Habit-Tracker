@@ -83,27 +83,27 @@ async def break_habit():
                 statement = select(Habit).where(and_(Habit.next_frequency_date < now, Habit.delete_status == False, Habit.frequency_goal_count == 0))
                 result = await db.execute(statement)
                 broken_habit = result.scalars().all()
-                
-                for entry in broken_habit:
-                    entry.user_streak_count = 0
-                    entry.break_task_status = True
-                    entry.system_streak_count += 1
-                    entry.no_of_failed_streak += 1
-                    entry.complete_current_habit = False
-                    entry.frequency_goal_count = 0
-                    # Habit cycle starts today at 01;00
-                    entry.start_at = now.replace(hour=1, minute=0, second=0, microsecond=0)
-                    # Calculate percentage performance
-                    if entry.system_streak_count > 0:
-                        perf = (entry.system_streak_count - entry.no_of_failed_streak) / entry.system_streak_count
-                        entry.percentage_performance = round(float(perf * 100), 2)
-                    else:
-                        entry.percentage_performance = 0.0
-                    #next_frequency_timeline
-                    entry.next_frequency_date = (now + timedelta(days=1)).replace(hour=1, minute=0, second=0, microsecond=0) if entry.habit_frequency == "daily" else (now + timedelta(weeks=1)).replace(hour=1, minute=0, second=0, microsecond=0)
-                                
-                await db.commit()
-                print(f"Cleanup task completed: {len(broken_habit)} entries processed") 
+                if broken_habit:
+                    for entry in broken_habit:
+                        entry.user_streak_count = 0
+                        entry.break_task_status = True
+                        entry.system_streak_count += 1
+                        entry.no_of_failed_streak += 1
+                        entry.complete_current_habit = False
+                        entry.frequency_goal_count = 0
+                        # Habit cycle starts today at 01;00
+                        entry.start_at = now.replace(hour=1, minute=0, second=0, microsecond=0)
+                        # Calculate percentage performance
+                        if entry.system_streak_count > 0:
+                            perf = (entry.system_streak_count - entry.no_of_failed_streak) / entry.system_streak_count
+                            entry.percentage_performance = round(float(perf * 100), 2)
+                        else:
+                            entry.percentage_performance = 0.0
+                        #next_frequency_timeline
+                        entry.next_frequency_date = (now + timedelta(days=1)).replace(hour=1, minute=0, second=0, microsecond=0) if entry.habit_frequency == "daily" else (now + timedelta(weeks=1)).replace(hour=1, minute=0, second=0, microsecond=0)
+                                    
+                        await db.commit()
+                        print(f"Cleanup task completed: {len(broken_habit)} entries processed")
             now = datetime.now(timezone.utc)
             tomorrow_2am = (now + timedelta(days=1)).replace(hour=2, minute=0, second=0, microsecond=0)
             sleep_seconds = (tomorrow_2am - now).total_seconds()
