@@ -3,6 +3,7 @@ from .schema import Register, MessageOut, LoginUser, LogRes, HabitCreate, HabitO
 from .crud import habit_creation, Habit_lists, user_register, user_login, mark_habit_done, habit_deleted, streak_max, weak_habit, get_filtered_habits
 from .setup_main import get_db
 from .dep import user_auth, MyParams
+from sqlmodel import text
 
 
 router = APIRouter(prefix="/Tracker", tags=["Habit Tracker Application"])
@@ -291,3 +292,9 @@ async def filter_habit_by_frequency(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
+
+@router.get("/health", status_code=status.HTTP_200_OK)
+async def healthcheck(session = Depends(get_db)):
+    """Pings the database to keep both FastAPI and Aiven postgres db awake."""
+    await session.execute(text("SELECT 1;"))
+    return {"status": "healthy", "database": "connected"}
